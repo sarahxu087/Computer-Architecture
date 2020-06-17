@@ -5,7 +5,9 @@ HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
 MUL = 0b10100010
-
+POP = 0b01000110
+PUSH = 0b01000101
+SP = 7
 class CPU:
     """Main CPU class."""
 
@@ -14,6 +16,7 @@ class CPU:
         self.ram = [0]*256
         self.pc = 0
         self.reg= [0]*8
+        self.reg[SP] = 0xf4
 
     def load(self,filename):
         """Load a program into memory."""
@@ -100,6 +103,17 @@ class CPU:
             elif ir == MUL:
                 self.alu(ir,operand_a,operand_b)
                 self.pc +=3
+            elif ir == PUSH:
+                self.reg[SP]-=1
+                value = self.reg[operand_a]
+                self.ram[self.reg[SP]]=value
+                self.pc +=2
+            elif ir == POP:
+                value = self.ram[self.reg[SP]]
+                self.reg[operand_a] = value
+                self.reg[SP]+=1
+                self.pc +=2
+
             elif ir == HLT:
                 running = False
             else:
