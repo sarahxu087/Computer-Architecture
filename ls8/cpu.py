@@ -5,9 +5,12 @@ HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
 MUL = 0b10100010
+ADD = 0b10100000
 POP = 0b01000110
 PUSH = 0b01000101
 SP = 7
+CALL = 0b01010000
+RET = 0b00010001
 class CPU:
     """Main CPU class."""
 
@@ -39,16 +42,29 @@ class CPU:
             self.ram[address] = instruction
             address += 1
         '''
-        filename = sys.argv[1]
-        with open(filename)as f:
-            for address,line in enumerate(f):
-                line=line.split("#")
-                try:
-                    v = int(line[0],2)
-                except ValueError:
-                    continue
+        try:
+            address = 0
+            # sys.argv[0] is the name of the running program itself
+            filename = sys.argv[1]
+            with open(filename) as f:
+                for line in f:
+                    # ignore comments
+                    comment_split = line.split('#')
+                    # strip out whitespace
+                    num = comment_split[0].strip()
+                    # ignore blank lines
+                    if num == "":
+                        continue
+                    # convert the binary string to integers.
+                    # built-in integer function dose it for us.
+                    value = int(num,2)
 
-                self.ram[address] = v
+                    self.ram[address] = value
+                    address+=1
+
+        except FileNotFoundError:
+            print(f"{sys.argv[0]}: {sys.argv[1]} not found")
+            sys.exit(2)
 
 
         
@@ -57,7 +73,7 @@ class CPU:
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
-        if op == "ADD":
+        if op == ADD:
             self.reg[reg_a] += self.reg[reg_b]
         # elif op == "SUB": etc
         elif op == MUL:
@@ -103,6 +119,9 @@ class CPU:
             elif ir == MUL:
                 self.alu(ir,operand_a,operand_b)
                 self.pc +=3
+            elif ir == ADD:
+                self.alu(ir,operand_a,operand_b)
+                self.pc +=3
             elif ir == PUSH:
                 self.reg[SP]-=1
                 value = self.reg[operand_a]
@@ -113,7 +132,15 @@ class CPU:
                 self.reg[operand_a] = value
                 self.reg[SP]+=1
                 self.pc +=2
-
+            elif ir == CALL:
+                return_addr = self.pc+2
+                self.reg[SP]-=1
+                self.ram[self.reg[SP]]=return_addr
+                self.pc = self.reg[operand_a]
+                
+            elif ir == RET:
+                self.pc = self.ram[self.reg[SP]]
+                self.reg[SP] +=1
             elif ir == HLT:
                 running = False
             else:
